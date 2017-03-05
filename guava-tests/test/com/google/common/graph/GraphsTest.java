@@ -212,19 +212,21 @@ public class GraphsTest {
   @Test
   public void transpose_directedGraph() {
     MutableGraph<Integer> directedGraph = GraphBuilder.directed().allowsSelfLoops(true).build();
+    directedGraph.putEdge(N1, N3);
     directedGraph.putEdge(N3, N1);
     directedGraph.putEdge(N1, N2);
     directedGraph.putEdge(N1, N1);
     directedGraph.putEdge(N3, N4);
 
     MutableGraph<Integer> expectedTranspose = GraphBuilder.directed().allowsSelfLoops(true).build();
+    expectedTranspose.putEdge(N3, N1);
     expectedTranspose.putEdge(N1, N3);
     expectedTranspose.putEdge(N2, N1);
     expectedTranspose.putEdge(N1, N1);
     expectedTranspose.putEdge(N4, N3);
 
-    Graph<Integer> transpose = Graphs.transpose(directedGraph);
-    assertThat(Graphs.equivalent(transpose, expectedTranspose)).isTrue();
+    Graph<Integer> transpose = transpose(directedGraph);
+    assertThat(transpose).isEqualTo(expectedTranspose);
     assertThat(transpose(transpose)).isSameAs(directedGraph);
     AbstractGraphTest.validateGraph(transpose);
 
@@ -247,6 +249,7 @@ public class GraphsTest {
   public void transpose_directedValueGraph() {
     MutableValueGraph<Integer, String> directedGraph =
         ValueGraphBuilder.directed().allowsSelfLoops(true).build();
+    directedGraph.putEdgeValue(N1, N3, E13);
     directedGraph.putEdgeValue(N3, N1, E31);
     directedGraph.putEdgeValue(N1, N2, E12);
     directedGraph.putEdgeValue(N1, N1, E11);
@@ -254,22 +257,22 @@ public class GraphsTest {
 
     MutableValueGraph<Integer, String> expectedTranspose =
         ValueGraphBuilder.directed().allowsSelfLoops(true).build();
+    expectedTranspose.putEdgeValue(N3, N1, E13);
     expectedTranspose.putEdgeValue(N1, N3, E31);
     expectedTranspose.putEdgeValue(N2, N1, E12);
     expectedTranspose.putEdgeValue(N1, N1, E11);
     expectedTranspose.putEdgeValue(N4, N3, E34);
 
-    ValueGraph<Integer, String> transpose = Graphs.transpose(directedGraph);
-    assertThat(Graphs.equivalent(transpose, expectedTranspose)).isTrue();
+    ValueGraph<Integer, String> transpose = transpose(directedGraph);
+    assertThat(transpose).isEqualTo(expectedTranspose);
     assertThat(transpose(transpose)).isSameAs(directedGraph);
-    AbstractGraphTest.validateGraph(transpose);
+    AbstractGraphTest.validateGraph(transpose.asGraph());
 
-    EndpointPair<Integer> pair12 = EndpointPair.ordered(N1, N2);
-    assertThat(transpose.edgeValues().get(pair12)).isNull();
+    assertThat(transpose.edgeValueOrDefault(N1, N2, null)).isNull();
     directedGraph.putEdgeValue(N2, N1, E21);
     // View should be updated.
-    assertThat(transpose.edgeValues().get(pair12)).isEqualTo(E21);
-    AbstractGraphTest.validateGraph(transpose);
+    assertThat(transpose.edgeValueOrDefault(N1, N2, null)).isEqualTo(E21);
+    AbstractGraphTest.validateGraph(transpose.asGraph());
   }
 
   @Test
@@ -283,28 +286,34 @@ public class GraphsTest {
   @Test
   public void transpose_directedNetwork() {
     MutableNetwork<Integer, String> directedGraph =
-        NetworkBuilder.directed().allowsSelfLoops(true).build();
+        NetworkBuilder.directed().allowsParallelEdges(true).allowsSelfLoops(true).build();
+    directedGraph.addEdge(N1, N3, E13);
     directedGraph.addEdge(N3, N1, E31);
     directedGraph.addEdge(N1, N2, E12);
+    directedGraph.addEdge(N1, N2, E12_A);
     directedGraph.addEdge(N1, N1, E11);
     directedGraph.addEdge(N3, N4, E34);
 
     MutableNetwork<Integer, String> expectedTranspose =
-        NetworkBuilder.directed().allowsSelfLoops(true).build();
+        NetworkBuilder.directed().allowsParallelEdges(true).allowsSelfLoops(true).build();
+    expectedTranspose.addEdge(N3, N1, E13);
     expectedTranspose.addEdge(N1, N3, E31);
     expectedTranspose.addEdge(N2, N1, E12);
+    expectedTranspose.addEdge(N2, N1, E12_A);
     expectedTranspose.addEdge(N1, N1, E11);
     expectedTranspose.addEdge(N4, N3, E34);
 
-    Network<Integer, String> transpose = Graphs.transpose(directedGraph);
-    assertThat(Graphs.equivalent(transpose, expectedTranspose)).isTrue();
+    Network<Integer, String> transpose = transpose(directedGraph);
+    assertThat(transpose).isEqualTo(expectedTranspose);
     assertThat(transpose(transpose)).isSameAs(directedGraph);
     AbstractNetworkTest.validateNetwork(transpose);
 
     assertThat(transpose.edgesConnecting(N1, N2)).isEmpty();
+    assertThat(transpose.edgeConnecting(N1, N2)).isAbsent();
     directedGraph.addEdge(N2, N1, E21);
     // View should be updated.
     assertThat(transpose.edgesConnecting(N1, N2)).containsExactly(E21);
+    assertThat(transpose.edgeConnecting(N1, N2)).hasValue(E21);
     AbstractNetworkTest.validateNetwork(transpose);
   }
 
@@ -324,8 +333,7 @@ public class GraphsTest {
     expectedSubgraph.putEdge(N2, N1);
     expectedSubgraph.putEdge(N4, N4);
 
-    assertThat(Graphs.equivalent(inducedSubgraph(directedGraph, nodeSubset), expectedSubgraph))
-        .isTrue();
+    assertThat(inducedSubgraph(directedGraph, nodeSubset)).isEqualTo(expectedSubgraph);
   }
 
   @Test
@@ -346,8 +354,7 @@ public class GraphsTest {
     expectedSubgraph.putEdgeValue(N2, N1, E21);
     expectedSubgraph.putEdgeValue(N4, N4, E44);
 
-    assertThat(Graphs.equivalent(inducedSubgraph(directedGraph, nodeSubset), expectedSubgraph))
-        .isTrue();
+    assertThat(inducedSubgraph(directedGraph, nodeSubset)).isEqualTo(expectedSubgraph);
   }
 
   @Test
@@ -368,8 +375,7 @@ public class GraphsTest {
     expectedSubgraph.addEdge(N2, N1, E21);
     expectedSubgraph.addEdge(N4, N4, E44);
 
-    assertThat(Graphs.equivalent(inducedSubgraph(directedGraph, nodeSubset), expectedSubgraph))
-        .isTrue();
+    assertThat(inducedSubgraph(directedGraph, nodeSubset)).isEqualTo(expectedSubgraph);
   }
 
   @Test
@@ -397,7 +403,7 @@ public class GraphsTest {
     Graph<Integer> directedGraph = buildDirectedGraph();
 
     Graph<Integer> copy = copyOf(directedGraph);
-    assertThat(Graphs.equivalent(copy, directedGraph)).isTrue();
+    assertThat(copy).isEqualTo(directedGraph);
   }
 
   @Test
@@ -405,7 +411,7 @@ public class GraphsTest {
     Graph<Integer> undirectedGraph = buildUndirectedGraph();
 
     Graph<Integer> copy = copyOf(undirectedGraph);
-    assertThat(Graphs.equivalent(copy, undirectedGraph)).isTrue();
+    assertThat(copy).isEqualTo(undirectedGraph);
   }
 
   @Test
@@ -413,7 +419,7 @@ public class GraphsTest {
     ValueGraph<Integer, String> directedGraph = buildDirectedValueGraph();
 
     ValueGraph<Integer, String> copy = copyOf(directedGraph);
-    assertThat(Graphs.equivalent(copy, directedGraph)).isTrue();
+    assertThat(copy).isEqualTo(directedGraph);
   }
 
   @Test
@@ -421,7 +427,7 @@ public class GraphsTest {
     ValueGraph<Integer, String> undirectedGraph = buildUndirectedValueGraph();
 
     ValueGraph<Integer, String> copy = copyOf(undirectedGraph);
-    assertThat(Graphs.equivalent(copy, undirectedGraph)).isTrue();
+    assertThat(copy).isEqualTo(undirectedGraph);
   }
 
   @Test
@@ -429,7 +435,7 @@ public class GraphsTest {
     Network<Integer, String> directedGraph = buildDirectedNetwork();
 
     Network<Integer, String> copy = copyOf(directedGraph);
-    assertThat(Graphs.equivalent(copy, directedGraph)).isTrue();
+    assertThat(copy).isEqualTo(directedGraph);
   }
 
   @Test
@@ -437,7 +443,7 @@ public class GraphsTest {
     Network<Integer, String> undirectedGraph = buildUndirectedNetwork();
 
     Network<Integer, String> copy = copyOf(undirectedGraph);
-    assertThat(Graphs.equivalent(copy, undirectedGraph)).isTrue();
+    assertThat(copy).isEqualTo(undirectedGraph);
   }
 
   // Graph creation tests
@@ -577,19 +583,11 @@ public class GraphsTest {
     }
   }
 
-  @Test
-  public void defaultImplementations_notValueGraph() {
-    assertThat(buildDirectedGraph()).isNotInstanceOf(ValueGraph.class);
-    assertThat(buildUndirectedGraph()).isNotInstanceOf(ValueGraph.class);
-    assertThat(ImmutableGraph.copyOf(buildDirectedGraph())).isNotInstanceOf(ValueGraph.class);
-    assertThat(ImmutableGraph.copyOf(buildUndirectedGraph())).isNotInstanceOf(ValueGraph.class);
-  }
-
   private static <N> void checkTransitiveClosure(Graph<N> originalGraph, Graph<N> expectedClosure) {
     for (N node : originalGraph.nodes()) {
       assertThat(reachableNodes(originalGraph, node)).isEqualTo(expectedClosure.successors(node));
     }
-    assertThat(Graphs.equivalent(transitiveClosure(originalGraph), expectedClosure)).isTrue();
+    assertThat(transitiveClosure(originalGraph)).isEqualTo(expectedClosure);
   }
 
   private static MutableGraph<Integer> buildDirectedGraph() {

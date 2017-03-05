@@ -18,6 +18,7 @@ package com.google.common.graph;
 
 import com.google.common.annotations.Beta;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
+import com.google.errorprone.annotations.CompatibleWith;
 
 /**
  * A subinterface of {@link ValueGraph} which adds mutation methods. When mutation is not required,
@@ -36,7 +37,7 @@ public interface MutableValueGraph<N, V> extends ValueGraph<N, V> {
    *
    * <p><b>Nodes must be unique</b>, just as {@code Map} keys must be. They must also be non-null.
    *
-   * @return {@code true} iff the graph was modified as a result of this call
+   * @return {@code true} if the graph was modified as a result of this call
    */
   @CanIgnoreReturnValue
   boolean addNode(N node);
@@ -64,10 +65,10 @@ public interface MutableValueGraph<N, V> extends ValueGraph<N, V> {
   /**
    * Removes {@code node} if it is present; all edges incident to {@code node} will also be removed.
    *
-   * @return {@code true} iff the graph was modified as a result of this call
+   * @return {@code true} if the graph was modified as a result of this call
    */
   @CanIgnoreReturnValue
-  boolean removeNode(Object node);
+  boolean removeNode(@CompatibleWith("N") Object node);
 
   /**
    * Removes the edge connecting {@code nodeU} to {@code nodeV}, if it is present.
@@ -76,5 +77,5 @@ public interface MutableValueGraph<N, V> extends ValueGraph<N, V> {
    *     nodeV}, or null if there was no such edge.
    */
   @CanIgnoreReturnValue
-  V removeEdge(Object nodeU, Object nodeV);
+  V removeEdge(@CompatibleWith("N") Object nodeU, @CompatibleWith("N") Object nodeV);
 }
